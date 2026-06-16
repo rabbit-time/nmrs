@@ -3,6 +3,8 @@
 All notable changes to the `nmrs` crate will be documented in this file.
 
 ## [Unreleased]
+
+## [3.2.1] - 2026-06-16
 ### Added
 - `NetworkManager::get_saved_connection_uuid()` — resolve a profile UUID from `connection.id` (usually the Wi-Fi SSID) for use with `update_saved_connection` ([#442](https://github.com/networkmanager-rs/nmrs/issues/442))
 - `DeviceState::is_enabled()`, `Device.frequency`, and `WifiDevice.active_frequency_mhz` expose device usability and active Wi-Fi AP frequency without requiring separate AP lookups ([#445](https://github.com/networkmanager-rs/nmrs/pull/445))
@@ -318,7 +320,8 @@ All notable changes to the `nmrs` crate will be documented in this file.
 [3.1.4]: https://github.com/cachebag/nmrs/compare/nmrs-v1.2.0...nmrs-v3.1.4
 [3.1.5]: https://github.com/cachebag/nmrs/compare/nmrs-v1.2.0...nmrs-v3.1.5
 [3.2.0]: https://github.com/cachebag/nmrs/compare/nmrs-v1.2.0...nmrs-v3.2.0
-[Unreleased]: https://github.com/cachebag/nmrs/compare/nmrs-v3.2.0...HEAD
+[3.2.1]: https://github.com/cachebag/nmrs/compare/nmrs-v1.2.0...nmrs-v3.2.1
+[Unreleased]: https://github.com/cachebag/nmrs/compare/nmrs-v3.2.1...HEAD
 [1.1.0]: https://github.com/cachebag/nmrs/compare/nmrs-v1.0.1...nmrs-v1.1.0
 [1.0.1]: https://github.com/cachebag/nmrs/compare/nmrs-v1.0.0...nmrs-v1.0.1
 [1.0.0]: https://github.com/cachebag/nmrs/compare/v0.5.0-beta...nmrs-v1.0.0
