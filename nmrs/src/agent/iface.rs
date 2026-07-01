@@ -17,7 +17,7 @@ use crate::types::constants::timeouts;
 
 use super::request::{
     CancelReason, ConnectionDict, SecretAgentFlags, SecretReply, SecretRequest, SecretResponder,
-    SecretStoreEvent, extract_setting_string, parse_secret_setting,
+    SecretStoreEvent, extract_existing_secrets, extract_setting_string, parse_secret_setting,
 };
 
 /// Custom D-Bus error type for the SecretAgent interface.
@@ -89,6 +89,7 @@ impl SecretAgentInterface {
             hints,
             flags: SecretAgentFlags::from_bits_truncate(flags),
             responder: SecretResponder::new(reply_tx, setting_name.to_owned()),
+            existing_secrets: extract_existing_secrets(&connection, setting_name),
         };
 
         // Send to the consumer stream. If the channel is full or closed,

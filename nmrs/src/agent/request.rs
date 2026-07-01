@@ -127,6 +127,10 @@ pub struct SecretRequest {
     pub flags: SecretAgentFlags,
     /// The responder used to reply with secrets or cancel.
     pub responder: SecretResponder,
+    /// Existing secrets NetworkManager sent in the `GetSecrets` payload, for
+    /// pre-filling a re-authentication prompt. Currently only populated for
+    /// `vpn` connections, and only for system-owned secrets.
+    pub existing_secrets: HashMap<String, String>,
 }
 
 impl std::fmt::Debug for SecretRequest {
@@ -381,6 +385,32 @@ pub(crate) fn parse_secret_setting(
     }
 }
 
+/// Extracts the secrets already present in the `GetSecrets` payload.
+///
+/// Only `vpn` connections are handled, mirroring
+/// [`SecretResponder::vpn_secrets`] by reading the map nested under
+/// `vpn.secrets`. Other settings return an empty map.
+pub(crate) fn extract_existing_secrets(
+    connection: &ConnectionDict,
+    setting_name: &str,
+) -> HashMap<String, String> {
+    let Some(section) = connection.get(setting_name) else {
+        return HashMap::new();
+    };
+
+    if setting_name == "vpn" {
+        return section
+            .get("secrets")
+            .and_then(|v| <HashMap<String, String>>::try_from(v.clone()).ok())
+            .unwrap_or_default();
+    }
+
+    // Other connection types would require reading their individual secret
+    // keys ("psk", "wep-key0", "password", etc.); not currently handled.
+
+    HashMap::new()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -418,6 +448,56 @@ mod tests {
         let connection = HashMap::new();
         let setting = parse_secret_setting(&connection, "some-custom-thing");
         assert!(matches!(setting, SecretSetting::Other(s) if s == "some-custom-thing"));
+    }
+
+    #[test]
+    fn extract_existing_secrets_reads_vpn_secrets() {
+        let mut secrets = HashMap::new();
+        secrets.insert("password".to_owned(), "hunter2".to_owned());
+        secrets.insert("Xauth password".to_owned(), "otp".to_owned());
+
+        let mut vpn = HashMap::new();
+        vpn.insert("secrets".to_owned(), OwnedValue::from(secrets));
+        let mut connection = ConnectionDict::new();
+        connection.insert("vpn".to_owned(), vpn);
+
+        let existing = extract_existing_secrets(&connection, "vpn");
+        assert_eq!(
+            existing.get("password").map(String::as_str),
+            Some("hunter2")
+        );
+        assert_eq!(
+            existing.get("Xauth password").map(String::as_str),
+            Some("otp")
+        );
+    }
+
+    #[test]
+    fn extract_existing_secrets_vpn_without_secrets_is_empty() {
+        // A `vpn` section present but with no nested `secrets` sub-dict.
+        let mut connection = ConnectionDict::new();
+        connection.insert("vpn".to_owned(), HashMap::new());
+        assert!(extract_existing_secrets(&connection, "vpn").is_empty());
+    }
+
+    #[test]
+    fn extract_existing_secrets_missing_section_is_empty() {
+        let connection = ConnectionDict::new();
+        assert!(extract_existing_secrets(&connection, "vpn").is_empty());
+    }
+
+    #[test]
+    fn extract_existing_secrets_non_vpn_is_empty() {
+        // Non-VPN settings are intentionally not populated (see fn docs).
+        let mut inner = HashMap::new();
+        inner.insert(
+            "psk".to_owned(),
+            OwnedValue::from(Str::from("should-be-ignored")),
+        );
+        let mut connection = ConnectionDict::new();
+        connection.insert("802-11-wireless-security".to_owned(), inner);
+
+        assert!(extract_existing_secrets(&connection, "802-11-wireless-security").is_empty());
     }
 
     #[test]
