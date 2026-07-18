@@ -8,10 +8,12 @@ readonly project_root="$(cd "${script_dir}/../.." && pwd)"
 readonly runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/nmrs-integration.XXXXXX")"
 readonly networkmanager_log="${runtime_dir}/networkmanager.log"
 readonly hostapd_log="${runtime_dir}/hostapd.log"
+readonly wpa_supplicant_log="${runtime_dir}/wpa_supplicant.log"
 readonly hostapd_config="${runtime_dir}/hostapd.conf"
 readonly networkmanager_config="${runtime_dir}/NetworkManager.conf"
 networkmanager_pid=""
 hostapd_pid=""
+wpa_supplicant_pid=""
 hwsim_station_interface=""
 
 stop_process() {
@@ -25,6 +27,7 @@ stop_process() {
 
 cleanup() {
     stop_process "${networkmanager_pid}"
+    stop_process "${wpa_supplicant_pid}"
     stop_process "${hostapd_pid}"
     rm -rf "${runtime_dir}"
 }
@@ -37,6 +40,45 @@ print_networkmanager_log() {
 print_hostapd_log() {
     echo "hostapd did not become ready. Its log follows:" >&2
     cat "${hostapd_log}" >&2 || true
+}
+
+print_wpa_supplicant_log() {
+    echo "wpa_supplicant did not become ready. Its log follows:" >&2
+    cat "${wpa_supplicant_log}" >&2 || true
+}
+
+start_wpa_supplicant() {
+    mkdir -p /run/wpa_supplicant
+
+    wpa_supplicant \
+        -u \
+        -s \
+        -O /run/wpa_supplicant \
+        -f "${wpa_supplicant_log}" > /dev/null 2>&1 &
+    wpa_supplicant_pid=$!
+
+    for _ in $(seq 1 15); do
+        if dbus-send \
+            --system \
+            --dest=org.freedesktop.DBus \
+            --type=method_call \
+            --print-reply \
+            /org/freedesktop/DBus \
+            org.freedesktop.DBus.NameHasOwner \
+            string:fi.w1.wpa_supplicant1 2>/dev/null | grep --quiet 'boolean true'; then
+            return
+        fi
+
+        if ! kill -0 "${wpa_supplicant_pid}" 2>/dev/null; then
+            print_wpa_supplicant_log
+            exit 1
+        fi
+
+        sleep 1
+    done
+
+    print_wpa_supplicant_log
+    exit 1
 }
 
 setup_hwsim_access_point() {
@@ -125,6 +167,8 @@ dbus-daemon \
     --nopidfile
 
 if [[ "${mode}" == "wifi-integration" ]]; then
+    start_wpa_supplicant
+
     NetworkManager \
         --config="${networkmanager_config}" \
         --no-daemon \
@@ -157,14 +201,26 @@ nmcli general status
 export NMRS_REQUIRE_NETWORKMANAGER=1
 
 if [[ "${mode}" == "wifi-integration" ]]; then
-    if ! nmcli --terse --fields DEVICE,TYPE device status | grep --fixed-strings --quiet "${hwsim_station_interface}:wifi"; then
-        echo "NetworkManager did not detect ${hwsim_station_interface} as Wi-Fi" >&2
+    for _ in $(seq 1 30); do
+        station_state="$(nmcli --terse --fields DEVICE,TYPE,STATE device status | awk -F: -v interface="${hwsim_station_interface}" '$1 == interface && $2 == "wifi" { print $3; exit }')"
+        if [[ "${station_state}" == "disconnected" || "${station_state}" == "connected" ]]; then
+            break
+        fi
+
+        sleep 1
+    done
+
+    if [[ "${station_state:-}" != "disconnected" && "${station_state:-}" != "connected" ]]; then
+        echo "NetworkManager did not make ${hwsim_station_interface} ready for scanning" >&2
         nmcli device status >&2 || true
+        print_networkmanager_log
+        print_wpa_supplicant_log
         exit 1
     fi
 
     export NMRS_REQUIRE_WIFI=1
     export NMRS_EXPECT_WIFI_SSID=nmrs-hwsim
+    export NMRS_WIFI_INTERFACE="${hwsim_station_interface}"
 fi
 
 case "${mode}" in

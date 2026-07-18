@@ -387,8 +387,10 @@ pub(crate) async fn list_bluetooth_devices(conn: &Connection) -> Result<Vec<Blue
 pub(crate) async fn wait_for_wifi_ready(conn: &Connection) -> Result<()> {
     let nm = NMProxy::new(conn).await?;
     let devices = nm.get_devices().await?;
+    let mut pending_wifi_device = None;
+    let mut found_wifi_device = false;
 
-    // Find the Wi-Fi device
+    // Prefer a ready device. An unmanaged radio can appear before a usable one.
     for dev_path in devices {
         let dev = NMDeviceProxy::builder(conn)
             .path(dev_path.clone())?
@@ -399,9 +401,10 @@ pub(crate) async fn wait_for_wifi_ready(conn: &Connection) -> Result<()> {
             continue;
         }
 
-        debug!("Found Wi-Fi device, waiting for it to become ready");
+        found_wifi_device = true;
 
-        // Check current state first
+        debug!("Found Wi-Fi device, checking whether it is ready");
+
         let current_state = dev.state().await?;
         let state = DeviceState::from(current_state);
 
@@ -410,11 +413,23 @@ pub(crate) async fn wait_for_wifi_ready(conn: &Connection) -> Result<()> {
             return Ok(());
         }
 
-        // Wait for device to become ready using signal-based monitoring
+        if !matches!(state, DeviceState::Unmanaged | DeviceState::Unavailable)
+            && pending_wifi_device.is_none()
+        {
+            pending_wifi_device = Some(dev_path);
+        }
+    }
+
+    if let Some(dev_path) = pending_wifi_device {
+        let dev = NMDeviceProxy::builder(conn).path(dev_path)?.build().await?;
         return wait_for_wifi_device_ready(&dev).await;
     }
 
-    Err(ConnectionError::NoWifiDevice)
+    if found_wifi_device {
+        Err(ConnectionError::WifiNotReady)
+    } else {
+        Err(ConnectionError::NoWifiDevice)
+    }
 }
 
 #[cfg(test)]

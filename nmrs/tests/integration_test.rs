@@ -287,6 +287,8 @@ async fn test_hwsim_access_point_is_discovered() {
         Ok(ssid) => ssid,
         Err(_) => return,
     };
+    let interface = std::env::var("NMRS_WIFI_INTERFACE")
+        .expect("WiFi integration harness did not provide the station interface");
 
     require_networkmanager!();
 
@@ -299,14 +301,15 @@ async fn test_hwsim_access_point_is_discovered() {
         .await
         .expect("Failed to enable WiFi");
 
+    let wifi = nm.wifi(&interface);
     for _ in 0..3 {
-        nm.scan_networks(None)
+        wifi.scan()
             .await
             .expect("Failed to scan for the virtual access point");
         sleep(Duration::from_secs(2)).await;
 
-        let networks = nm
-            .list_networks(None)
+        let networks = wifi
+            .list_networks()
             .await
             .expect("Failed to list scanned networks");
 

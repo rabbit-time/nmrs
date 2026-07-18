@@ -53,6 +53,11 @@ pub(crate) async fn scan_networks(conn: &Connection, interface: Option<&str>) ->
             if iface != want {
                 continue;
             }
+        } else {
+            let state = DeviceState::from(d_proxy.state().await?);
+            if matches!(state, DeviceState::Unmanaged | DeviceState::Unavailable) {
+                continue;
+            }
         }
 
         let wifi = NMWirelessProxy::builder(conn)

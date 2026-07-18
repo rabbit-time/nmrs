@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     hostapd \
     iw \
     network-manager \
+    wpasupplicant \
     && rm -rf /var/lib/apt/lists/*
 
 COPY Cargo.toml Cargo.lock ./
