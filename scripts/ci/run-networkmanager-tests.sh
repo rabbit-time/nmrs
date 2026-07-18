@@ -143,7 +143,11 @@ setup_hwsim_access_point() {
         'dhcp=internal' \
         '' \
         '[keyfile]' \
-        "unmanaged-devices=*,except:interface-name:${hwsim_station_interface}" >"${networkmanager_config}"
+        "unmanaged-devices=*,except:interface-name:${hwsim_station_interface}" \
+        '' \
+        '[device-hwsim-station]' \
+        "match-device=interface-name:=${hwsim_station_interface}" \
+        'managed=1' >"${networkmanager_config}"
 }
 
 trap cleanup EXIT
@@ -201,6 +205,9 @@ nmcli general status
 export NMRS_REQUIRE_NETWORKMANAGER=1
 
 if [[ "${mode}" == "wifi-integration" ]]; then
+    nmcli device set "${hwsim_station_interface}" managed yes
+    nmcli radio wifi on
+
     for _ in $(seq 1 30); do
         station_state="$(nmcli --terse --fields DEVICE,TYPE,STATE device status | awk -F: -v interface="${hwsim_station_interface}" '$1 == interface && $2 == "wifi" { print $3; exit }')"
         if [[ "${station_state}" == "disconnected" || "${station_state}" == "connected" ]]; then
@@ -213,7 +220,7 @@ if [[ "${mode}" == "wifi-integration" ]]; then
     if [[ "${station_state:-}" != "disconnected" && "${station_state:-}" != "connected" ]]; then
         echo "NetworkManager did not make ${hwsim_station_interface} ready for scanning" >&2
         nmcli device status >&2 || true
-        nmcli -f GENERAL.DEVICE,GENERAL.TYPE,GENERAL.STATE,GENERAL.REASON,GENERAL.MANAGED \
+        nmcli -f GENERAL.DEVICE,GENERAL.TYPE,GENERAL.STATE,GENERAL.REASON,GENERAL.NM-MANAGED \
             device show "${hwsim_station_interface}" >&2 || true
         print_networkmanager_log
         print_wpa_supplicant_log
