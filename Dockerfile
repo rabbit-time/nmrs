@@ -12,6 +12,6 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml Cargo.lock ./
 COPY nmrs ./nmrs
 
-RUN cargo build -p nmrs --release && cargo build -p nmrs
+RUN cargo build --locked -p nmrs --release && cargo build --locked -p nmrs
 
 CMD ["/bin/bash"]

@@ -54,10 +54,10 @@ export NMRS_REQUIRE_NETWORKMANAGER=1
 
 case "${1:-all}" in
     all)
-        cargo test --all-features --workspace
+        cargo test --locked --all-features --workspace
         ;;
     integration)
-        cargo test --test integration_test --all-features
+        cargo test --locked --test integration_test --all-features
         ;;
     shell)
         bash
