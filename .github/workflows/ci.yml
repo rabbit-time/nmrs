@@ -93,6 +93,16 @@ jobs:
       - name: Run doc tests
         run: cargo test --doc --all-features --workspace
 
+  integration:
+    name: NetworkManager Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run integration tests with NetworkManager
+        run: docker compose run --build --rm test-integration
+
   semver:
     name: Semantic Versioning Check
     runs-on: ubuntu-latest

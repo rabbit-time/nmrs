@@ -25,8 +25,11 @@ docker build -t nmrs-lib .
 **To run tests:**
 
 ```bash
-docker compose run test
+docker compose run --rm test
 ```
+
+This starts an isolated system D-Bus and NetworkManager instance, waits for it
+to be ready, and requires integration tests to connect to it.
 
 **To run an interactive shell:**
 

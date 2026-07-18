@@ -28,10 +28,13 @@ async fn has_ethernet_device(nm: &NetworkManager) -> bool {
         .unwrap_or(false)
 }
 
-/// Skip tests if NetworkManager is not available
+/// Skip tests if NetworkManager is not available outside the integration harness.
 macro_rules! require_networkmanager {
     () => {
         if !is_networkmanager_available().await {
+            if std::env::var_os("NMRS_REQUIRE_NETWORKMANAGER").is_some() {
+                panic!("NetworkManager is required but unavailable");
+            }
             eprintln!("Skipping test: NetworkManager not available");
             return;
         }

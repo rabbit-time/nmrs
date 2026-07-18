@@ -108,11 +108,12 @@ mod tests {
 For reproducible testing with a real NetworkManager instance:
 
 ```bash
-docker build -t nmrs-test .
-docker run --privileged nmrs-test cargo test
+docker compose run --build --rm test-integration
 ```
 
-The project includes a Dockerfile configured for testing.
+This starts a private system D-Bus and NetworkManager instance, waits for it to
+be ready, and fails if tests cannot connect to the daemon. Wi-Fi-specific tests
+continue to skip until the test environment has a Wi-Fi device.
 
 ## CI/CD
 
@@ -121,7 +122,8 @@ Tests run automatically via GitHub Actions on every push and pull request. The C
 1. Checks formatting (`cargo fmt --check`)
 2. Runs clippy (`cargo clippy`)
 3. Runs unit tests (`cargo test`)
-4. Builds documentation (`mdbook build`)
+4. Runs integration tests against NetworkManager in Docker
+5. Builds documentation (`mdbook build`)
 
 ## Next Steps
 

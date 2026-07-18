@@ -18,8 +18,11 @@ I also provide a `Dockerfile` you can build if you don't use Linux and use MacOS
 
 ### To run tests:
 ```bash
-docker compose run test
+docker compose run --rm test
 ```
+
+This starts an isolated system D-Bus and NetworkManager instance before running
+the test suite.
 
 ### To run an interactive shell:
 ```bash
