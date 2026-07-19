@@ -1088,6 +1088,7 @@ pub(crate) async fn get_device_by_interface(
 mod tests {
     use super::*;
     use crate::api::models::EapOptions;
+    use crate::models::Passphrase;
 
     fn saved_path() -> OwnedObjectPath {
         OwnedObjectPath::try_from("/org/freedesktop/NetworkManager/Settings/1")
@@ -1146,7 +1147,9 @@ mod tests {
         assert_eq!(
             decide_saved_connection(
                 Some(path.clone()),
-                &WifiSecurity::WpaPsk { psk: String::new() },
+                &WifiSecurity::WpaPsk {
+                    psk: Passphrase::default()
+                },
             )
             .unwrap(),
             SavedDecision::UseSaved(path)
@@ -1179,7 +1182,12 @@ mod tests {
     #[test]
     fn absent_profile_rejects_only_the_empty_stored_secret_sentinel() {
         assert!(matches!(
-            decide_saved_connection(None, &WifiSecurity::WpaPsk { psk: String::new() }),
+            decide_saved_connection(
+                None,
+                &WifiSecurity::WpaPsk {
+                    psk: Passphrase::default()
+                }
+            ),
             Err(ConnectionError::MissingPassword)
         ));
 
@@ -1212,7 +1220,7 @@ mod tests {
     #[test]
     fn saved_failure_recovery_requires_usable_fresh_settings() {
         assert!(!can_rebuild_after_saved_failure(&WifiSecurity::WpaPsk {
-            psk: String::new(),
+            psk: Passphrase::default(),
         }));
         assert!(can_rebuild_after_saved_failure(&WifiSecurity::Open));
         assert!(can_rebuild_after_saved_failure(&WifiSecurity::WpaPsk {

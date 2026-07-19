@@ -995,7 +995,7 @@ fn test_eap_options_builder_basic() {
         .unwrap();
 
     assert_eq!(opts.identity, "user@example.com");
-    assert_eq!(opts.password, "password");
+    assert_eq!(opts.password, Passphrase::from("password"));
     assert_eq!(opts.method, EapMethod::Peap);
     assert_eq!(opts.phase2, Phase2::Mschapv2);
     assert!(opts.anonymous_identity.is_none());
@@ -1019,7 +1019,7 @@ fn test_eap_options_builder_with_optionals() {
         .unwrap();
 
     assert_eq!(opts.identity, "user@company.com");
-    assert_eq!(opts.password, "password");
+    assert_eq!(opts.password, "password".into());
     assert_eq!(opts.method, EapMethod::Ttls);
     assert_eq!(opts.phase2, Phase2::Pap);
     assert_eq!(

@@ -820,7 +820,10 @@ pub fn validate_bssid(bssid: &str) -> Result<(), ConnectionError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::models::{EapMethod, EapOptions, Phase2, VpnKind, VpnRoute};
+    use crate::{
+        api::models::{EapMethod, EapOptions, Phase2, VpnKind, VpnRoute},
+        models::Passphrase,
+    };
 
     macro_rules! assert_error_message {
         ($result:expr, $variant:ident, $expected:expr) => {
@@ -937,16 +940,14 @@ mod tests {
     #[test]
     fn test_validate_wifi_security_psk_valid() {
         let psk = WifiSecurity::WpaPsk {
-            psk: "password123".to_string(),
+            psk: "password123".into(),
         };
         assert!(validate_wifi_security(&psk).is_ok());
     }
 
     #[test]
     fn test_validate_wifi_security_psk_empty() {
-        let psk = WifiSecurity::WpaPsk {
-            psk: "".to_string(),
-        };
+        let psk = WifiSecurity::WpaPsk { psk: "".into() };
         // Empty PSK is allowed (for saved credentials)
         assert!(validate_wifi_security(&psk).is_ok());
     }
@@ -954,7 +955,7 @@ mod tests {
     #[test]
     fn test_validate_wifi_security_psk_too_short() {
         let psk = WifiSecurity::WpaPsk {
-            psk: "short".to_string(),
+            psk: "short".into(),
         };
         assert_error_message!(
             validate_wifi_security(&psk),
@@ -966,7 +967,7 @@ mod tests {
     #[test]
     fn test_validate_wifi_security_psk_too_long() {
         let psk = WifiSecurity::WpaPsk {
-            psk: "a".repeat(64),
+            psk: "a".repeat(64).into(),
         };
         assert_error_message!(
             validate_wifi_security(&psk),
@@ -980,7 +981,7 @@ mod tests {
         let eap = WifiSecurity::WpaEap {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: "password".to_string(),
+                password: "password".into(),
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: Some("file:///etc/ssl/cert.pem".to_string()),
@@ -1003,7 +1004,7 @@ mod tests {
         let eap = WifiSecurity::WpaEap {
             opts: EapOptions {
                 identity: "".to_string(),
-                password: "password".to_string(),
+                password: "password".into(),
                 anonymous_identity: None,
                 domain_suffix_match: None,
                 ca_cert_path: None,
@@ -1030,7 +1031,7 @@ mod tests {
         let eap = WifiSecurity::WpaEap {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: "password".to_string(),
+                password: "password".into(),
                 anonymous_identity: None,
                 domain_suffix_match: None,
                 ca_cert_path: Some("/etc/ssl/cert.pem".to_string()), // Missing file://
@@ -1057,7 +1058,7 @@ mod tests {
         let eap = WifiSecurity::Wpa3Eap192bit {
             opts: EapOptions {
                 identity: "".to_string(),
-                password: "password".to_string(),
+                password: "password".into(),
                 anonymous_identity: None,
                 domain_suffix_match: None,
                 ca_cert_path: None,
@@ -1084,7 +1085,7 @@ mod tests {
         let eap = WifiSecurity::Wpa3Eap192bit {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: String::new(),
+                password: Passphrase::default(),
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
@@ -1107,7 +1108,7 @@ mod tests {
         let eap = WifiSecurity::Wpa3Eap192bit {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: String::new(),
+                password: Passphrase::default(),
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: None,
@@ -1130,7 +1131,7 @@ mod tests {
         let eap = WifiSecurity::Wpa3Eap192bit {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: String::new(),
+                password: Passphrase::default(),
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
@@ -1157,7 +1158,7 @@ mod tests {
         let eap = WifiSecurity::WpaEap {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: String::new(),
+                password: Passphrase::default(),
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
@@ -1184,7 +1185,7 @@ mod tests {
         let eap = WifiSecurity::WpaEap {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: String::new(),
+                password: Passphrase::default(),
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
@@ -1211,7 +1212,7 @@ mod tests {
         let eap = WifiSecurity::WpaEap {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: String::new(),
+                password: Passphrase::default(),
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
@@ -1238,7 +1239,7 @@ mod tests {
         let eap = WifiSecurity::WpaEap {
             opts: EapOptions {
                 identity: "user@example.com".to_string(),
-                password: String::new(),
+                password: Passphrase::default(),
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
@@ -1265,7 +1266,7 @@ mod tests {
         let base = EapOptions::new("user@example.com", "password").with_system_ca_certs(true);
 
         let mut empty_password = base.clone();
-        empty_password.password.clear();
+        empty_password.password = Passphrase::default();
         assert_error_message!(
             validate_wifi_security(&WifiSecurity::WpaEap {
                 opts: empty_password

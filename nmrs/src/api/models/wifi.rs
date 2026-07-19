@@ -1,4 +1,7 @@
+use std::fmt::Debug;
+
 use serde::{Deserialize, Serialize};
+use zeroize::ZeroizeOnDrop;
 
 use super::access_point::{AccessPoint, SecurityFeatures};
 use super::error::ConnectionError;
@@ -225,7 +228,7 @@ pub struct EapOptions {
     /// User identity (usually email or username)
     pub identity: String,
     /// PEAP/TTLS: Password for authentication
-    pub password: String,
+    pub password: Passphrase,
     /// PEAP/TTLS: Anonymous outer identity (for privacy)
     pub anonymous_identity: Option<String>,
     /// Domain to match against server certificate
@@ -256,7 +259,7 @@ impl Default for EapOptions {
     fn default() -> Self {
         Self {
             identity: String::new(),
-            password: String::new(),
+            password: Passphrase::default(),
             anonymous_identity: None,
             domain_suffix_match: None,
             ca_cert_path: None,
@@ -285,7 +288,7 @@ impl EapOptions {
     ///     .with_method(EapMethod::Peap)
     ///     .with_phase2(Phase2::Mschapv2);
     /// ```
-    pub fn new(identity: impl Into<String>, password: impl Into<String>) -> Self {
+    pub fn new(identity: impl Into<String>, password: impl Into<Passphrase>) -> Self {
         Self {
             identity: identity.into(),
             password: password.into(),
@@ -492,7 +495,7 @@ impl EapOptions {
 #[derive(Debug, Default)]
 pub struct EapOptionsBuilder {
     identity: Option<String>,
-    password: Option<String>,
+    password: Option<Passphrase>,
     anonymous_identity: Option<String>,
     domain_suffix_match: Option<String>,
     ca_cert_path: Option<String>,
@@ -521,7 +524,7 @@ impl EapOptionsBuilder {
     ///
     /// This is a required field.
     #[must_use]
-    pub fn password(mut self, password: impl Into<String>) -> Self {
+    pub fn password(mut self, password: impl Into<Passphrase>) -> Self {
         self.password = Some(password.into());
         self
     }
@@ -823,7 +826,7 @@ impl EapOptionsBuilder {
                     )
                 })?
             } else {
-                String::new()
+                Passphrase::default()
             },
             anonymous_identity: self.anonymous_identity,
             domain_suffix_match: self.domain_suffix_match,
@@ -848,6 +851,97 @@ impl EapOptionsBuilder {
             client_cert_path: self.client_cert_path,
             client_cert_blob: self.client_cert_blob,
         })
+    }
+}
+
+/// A memory-safe wrapper around [`String`] to protect secret passphrases.
+///
+/// Guarantees that the underlying memory is zeroized on [`Drop`], preventing the passphrase from
+/// leaking. Also hides the passphrase from [`Debug`].
+///
+/// # Usage
+/// Passphrase data should always be held within a [`Passphrase`] for as long as possible within
+/// its lifetime.
+///
+/// [`Passphrase::reveal`] exists for flexibility and returns the inner [`String`], but it forfeits
+/// the protection which this type provides - use with care.
+///
+/// # Examples
+/// ```
+/// use zeroize::Zeroize;
+///
+/// fn main() -> Result<()> {
+///     let s: String = /* ... */;
+///     let mut pass = Passphrase::from(s);
+///
+///     // Get the String back if needed.
+///     let revealed = pass.reveal();
+///
+///     // Do some stuff ...
+///
+///     // Bad! Revealed passphrases must be zeroized.
+///     return Ok(());
+///
+///     // Now it's safe.
+///     revealed.zeroize();
+///     Ok(())
+/// }
+/// ```
+#[derive(Clone, Default, Eq, PartialEq, ZeroizeOnDrop)]
+pub struct Passphrase(String);
+
+impl Passphrase {
+    pub fn new(passphrase: String) -> Self {
+        Passphrase(passphrase)
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Moves the inner [`String`] outside of [`Passphrase`].
+    ///
+    /// # Security
+    /// * [`Debug`] is no longer protected.
+    /// * [`ZeroizeOnDrop`] will no longer apply since the inner [`String`] is returned so
+    ///   `zeroize()` *must* be called manually before [`Drop`] occurs:
+    /// ```
+    /// {
+    ///     let mut passphrase: Passphrase = /* ... */;
+    ///     let revealed = passphrase.reveal();
+    ///
+    ///     // ...
+    ///
+    ///     revealed.zeroize();
+    /// } // Dropped here  
+    /// ```
+    pub fn reveal(mut self) -> String {
+        std::mem::take(&mut self.0)
+    }
+}
+
+impl Debug for Passphrase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Passphrase").field(&"[REDACTED]").finish()
+    }
+}
+
+impl From<String> for Passphrase {
+    fn from(s: String) -> Self {
+        Passphrase(s)
+    }
+}
+
+pub(crate) mod internal {
+    use super::Passphrase;
+    impl From<&'static str> for Passphrase {
+        fn from(s: &'static str) -> Self {
+            Self::from(s.to_owned())
+        }
     }
 }
 
@@ -914,7 +1008,7 @@ pub enum WifiSecurity {
     /// WPA-PSK (password-based authentication)
     WpaPsk {
         /// Pre-shared key (password)
-        psk: String,
+        psk: Passphrase,
     },
     /// WPA-EAP (Enterprise authentication via 802.1X)
     WpaEap {

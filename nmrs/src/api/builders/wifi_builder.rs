@@ -7,7 +7,10 @@ use std::collections::HashMap;
 use zvariant::Value;
 
 use super::connection_builder::ConnectionBuilder;
-use crate::api::models::{self, ConnectionOptions, EapMethod};
+use crate::{
+    api::models::{self, ConnectionOptions, EapMethod},
+    models::Passphrase,
+};
 
 /// WiFi band selection.
 #[non_exhaustive]
@@ -158,10 +161,10 @@ impl WifiConnectionBuilder {
     /// and cipher (TKIP/CCMP) with the access point, supporting mixed-mode
     /// routers that advertise both WPA and WPA2.
     #[must_use]
-    pub fn wpa_psk(mut self, psk: impl Into<String>) -> Self {
+    pub fn wpa_psk(mut self, psk: impl Into<Passphrase>) -> Self {
         let mut security = HashMap::new();
         security.insert("key-mgmt", Value::from("wpa-psk"));
-        security.insert("psk", Value::from(psk.into()));
+        security.insert("psk", Value::from(psk.into().reveal()));
         security.insert("psk-flags", Value::from(0u32));
         security.insert("auth-alg", Value::from("open"));
 
@@ -212,7 +215,7 @@ impl WifiConnectionBuilder {
 
         match opts.method {
             EapMethod::Peap | EapMethod::Ttls => {
-                e1x.insert("password", Value::from(opts.password));
+                e1x.insert("password", Value::from(opts.password.reveal()));
 
                 if let Some(ai) = opts.anonymous_identity {
                     e1x.insert("anonymous-identity", Value::from(ai));

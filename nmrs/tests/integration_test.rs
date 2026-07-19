@@ -8,6 +8,7 @@ use std::time::Duration;
 use futures::{FutureExt, StreamExt};
 use nmrs::agent::{SecretAgent, SecretAgentFlags, SecretAgentHandle, SecretSetting};
 use nmrs::builders::WireGuardBuilder;
+use nmrs::models::Passphrase;
 use nmrs::raw::zvariant::{OwnedObjectPath, OwnedValue, Value};
 use nmrs::{
     ActiveConnection, ActiveConnectionState, ConnectionError, DeviceState, MonitorHandle,
@@ -1083,7 +1084,7 @@ async fn wifi_wpa_saved_connection_lifecycle() {
     let interface = required_env("NMRS_WIFI_INTERFACE");
     let ssid = required_env("NMRS_EXPECT_WIFI_SSID");
     let absent_ssid = format!("{ssid}-absent");
-    let password = required_env("NMRS_WIFI_PASSWORD");
+    let password: Passphrase = required_env("NMRS_WIFI_PASSWORD").into();
     assert!(
         (8..=63).contains(&password.len()),
         "NMRS_WIFI_PASSWORD must be a valid WPA passphrase"
@@ -1485,7 +1486,12 @@ async fn wifi_wpa_saved_connection_lifecycle() {
         bounded(
             "reconnect with NetworkManager's saved PSK",
             WIFI_TIMEOUT,
-            wifi.connect(&ssid, WifiSecurity::WpaPsk { psk: String::new() }),
+            wifi.connect(
+                &ssid,
+                WifiSecurity::WpaPsk {
+                    psk: Passphrase::default(),
+                },
+            ),
         )
         .await
         .expect("saved-credential WPA reconnect failed");
@@ -1539,7 +1545,12 @@ async fn wifi_wpa_saved_connection_lifecycle() {
         let error = bounded(
             "reject an empty PSK without saved credentials",
             DBUS_TIMEOUT,
-            wifi.connect(&ssid, WifiSecurity::WpaPsk { psk: String::new() }),
+            wifi.connect(
+                &ssid,
+                WifiSecurity::WpaPsk {
+                    psk: Passphrase::default(),
+                },
+            ),
         )
         .await
         .expect_err("an empty PSK without a saved profile must fail");

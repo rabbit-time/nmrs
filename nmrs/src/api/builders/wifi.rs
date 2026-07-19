@@ -70,7 +70,7 @@ pub fn build_wifi_connection(
 
     builder = match security {
         models::WifiSecurity::Open => builder.open(),
-        models::WifiSecurity::WpaPsk { psk } => builder.wpa_psk(psk),
+        models::WifiSecurity::WpaPsk { psk } => builder.wpa_psk(psk.clone()),
         models::WifiSecurity::WpaEap { opts } => builder.wpa_eap(opts.clone()),
         models::WifiSecurity::Wpa3Eap192bit { opts } => builder.wpa3_eap_192_bit(opts.clone()),
     };
@@ -111,7 +111,9 @@ pub fn build_ethernet_connection(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{ConnectionOptions, EapMethod, EapOptions, Phase2, WifiSecurity};
+    use crate::models::{
+        ConnectionOptions, EapMethod, EapOptions, Passphrase, Phase2, WifiSecurity,
+    };
     use zvariant::Value;
 
     fn default_opts() -> ConnectionOptions {
@@ -264,7 +266,7 @@ mod tests {
     fn builds_eap_tls_connection() {
         let eap_opts = EapOptions {
             identity: "student@uni.edu".into(),
-            password: String::new(),
+            password: Passphrase::default(),
             anonymous_identity: None,
             domain_suffix_match: None,
             ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".into()),
@@ -315,7 +317,7 @@ mod tests {
     fn builds_eap_192bit_connection() {
         let eap_opts = EapOptions {
             identity: "student@uni.edu".into(),
-            password: String::new(),
+            password: Passphrase::default(),
             anonymous_identity: None,
             domain_suffix_match: None,
             ca_cert_path: None,
