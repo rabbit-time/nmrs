@@ -180,7 +180,7 @@ fn wifi_security_open() {
 #[test]
 fn wifi_security_psk() {
     let psk = WifiSecurity::WpaPsk {
-        psk: "password123".into(),
+        psk: Passphrase::new("password123".to_string()),
     };
     assert!(psk.secured());
     assert!(psk.is_psk());
@@ -192,7 +192,7 @@ fn wifi_security_eap() {
     let eap = WifiSecurity::WpaEap {
         opts: EapOptions {
             identity: "user@example.com".into(),
-            password: "secret".into(),
+            password: Passphrase::new("secret".to_string()),
             anonymous_identity: None,
             domain_suffix_match: None,
             ca_cert_path: None,
@@ -217,7 +217,7 @@ fn wifi_security_eap_192bit() {
     let eap = WifiSecurity::Wpa3Eap192bit {
         opts: EapOptions {
             identity: "user@example.com".into(),
-            password: "".into(),
+            password: Passphrase::new("".to_string()),
             anonymous_identity: None,
             domain_suffix_match: None,
             ca_cert_path: Some("file:///etc/ssl/certs/ca.crt".into()),
@@ -988,14 +988,14 @@ fn test_vpn_credentials_builder_missing_peers() {
 fn test_eap_options_builder_basic() {
     let opts = EapOptions::builder()
         .identity("user@example.com")
-        .password("password")
+        .password(Passphrase::new("password".to_string()))
         .method(EapMethod::Peap)
         .phase2(Phase2::Mschapv2)
         .build()
         .unwrap();
 
     assert_eq!(opts.identity, "user@example.com");
-    assert_eq!(opts.password, Passphrase::from("password"));
+    assert_eq!(opts.password, Passphrase::new("password".to_string()));
     assert_eq!(opts.method, EapMethod::Peap);
     assert_eq!(opts.phase2, Phase2::Mschapv2);
     assert!(opts.anonymous_identity.is_none());
@@ -1008,7 +1008,7 @@ fn test_eap_options_builder_basic() {
 fn test_eap_options_builder_with_optionals() {
     let opts = EapOptions::builder()
         .identity("user@company.com")
-        .password("password")
+        .password(Passphrase::new("password".to_string()))
         .method(EapMethod::Ttls)
         .phase2(Phase2::Pap)
         .anonymous_identity("anonymous@company.com")
@@ -1019,7 +1019,7 @@ fn test_eap_options_builder_with_optionals() {
         .unwrap();
 
     assert_eq!(opts.identity, "user@company.com");
-    assert_eq!(opts.password, "password".into());
+    assert_eq!(opts.password, Passphrase::new("password".to_string()));
     assert_eq!(opts.method, EapMethod::Ttls);
     assert_eq!(opts.phase2, Phase2::Pap);
     assert_eq!(
@@ -1038,7 +1038,7 @@ fn test_eap_options_builder_with_optionals() {
 fn test_eap_options_builder_peap_mschapv2() {
     let opts = EapOptions::builder()
         .identity("employee@corp.com")
-        .password("secret")
+        .password(Passphrase::new("secret".to_string()))
         .method(EapMethod::Peap)
         .phase2(Phase2::Mschapv2)
         .system_ca_certs(true)
@@ -1054,7 +1054,7 @@ fn test_eap_options_builder_peap_mschapv2() {
 fn test_eap_options_builder_ttls_pap() {
     let opts = EapOptions::builder()
         .identity("student@university.edu")
-        .password("password")
+        .password(Passphrase::new("password".to_string()))
         .method(EapMethod::Ttls)
         .phase2(Phase2::Pap)
         .ca_cert_path("file:///etc/ssl/certs/university.pem")
@@ -1186,7 +1186,7 @@ fn test_eap_options_builder_path_blob_client_cert() {
 #[test]
 fn test_eap_options_builder_missing_identity() {
     let err = EapOptions::builder()
-        .password("password")
+        .password(Passphrase::new("password".to_string()))
         .method(EapMethod::Peap)
         .phase2(Phase2::Mschapv2)
         .build()
@@ -1217,7 +1217,7 @@ fn test_eap_options_builder_missing_password() {
 fn test_eap_options_builder_missing_method() {
     let err = EapOptions::builder()
         .identity("user@example.com")
-        .password("password")
+        .password(Passphrase::new("password".to_string()))
         .phase2(Phase2::Mschapv2)
         .build()
         .unwrap_err();
@@ -1232,7 +1232,7 @@ fn test_eap_options_builder_missing_method() {
 fn test_eap_options_builder_missing_phase2() {
     let err = EapOptions::builder()
         .identity("user@example.com")
-        .password("password")
+        .password(Passphrase::new("password".to_string()))
         .method(EapMethod::Peap)
         .build()
         .unwrap_err();
@@ -1245,13 +1245,13 @@ fn test_eap_options_builder_missing_phase2() {
 
 #[test]
 fn test_eap_options_builder_equivalence_to_new() {
-    let opts_new = EapOptions::new("user@example.com", "password")
+    let opts_new = EapOptions::new("user@example.com", Passphrase::new("password".to_string()))
         .with_method(EapMethod::Peap)
         .with_phase2(Phase2::Mschapv2);
 
     let opts_builder = EapOptions::builder()
         .identity("user@example.com")
-        .password("password")
+        .password(Passphrase::new("password".to_string()))
         .method(EapMethod::Peap)
         .phase2(Phase2::Mschapv2)
         .build()

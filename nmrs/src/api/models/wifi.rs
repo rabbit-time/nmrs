@@ -933,15 +933,6 @@ impl From<String> for Passphrase {
     }
 }
 
-pub(crate) mod internal {
-    use super::Passphrase;
-    impl From<&'static str> for Passphrase {
-        fn from(s: &'static str) -> Self {
-            Self::from(s.to_owned())
-        }
-    }
-}
-
 /// Wi-Fi connection security types.
 ///
 /// Represents the authentication method for connecting to a WiFi network.

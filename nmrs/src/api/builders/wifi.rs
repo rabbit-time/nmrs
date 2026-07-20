@@ -158,7 +158,7 @@ mod tests {
         let conn = build_wifi_connection(
             "secure",
             &WifiSecurity::WpaPsk {
-                psk: "pw123".into(),
+                psk: Passphrase::new("pw123".to_string()),
             },
             &default_opts(),
         );
@@ -175,7 +175,9 @@ mod tests {
     fn psk_connection_links_wireless_to_security() {
         let conn = build_wifi_connection(
             "secure",
-            &WifiSecurity::WpaPsk { psk: "test".into() },
+            &WifiSecurity::WpaPsk {
+                psk: Passphrase::new("test".to_string()),
+            },
             &default_opts(),
         );
         let wireless = conn.get("802-11-wireless").unwrap();
@@ -189,7 +191,7 @@ mod tests {
     fn builds_eap_peap_connection() {
         let eap_opts = EapOptions {
             identity: "user@example.com".into(),
-            password: "secret123".into(),
+            password: Passphrase::new("secret123".to_string()),
             anonymous_identity: Some("anonymous@example.com".into()),
             domain_suffix_match: Some("example.com".into()),
             ca_cert_path: None,
@@ -232,7 +234,7 @@ mod tests {
     fn builds_eap_ttls_connection() {
         let eap_opts = EapOptions {
             identity: "student@uni.edu".into(),
-            password: "campus123".into(),
+            password: Passphrase::new("campus123".to_string()),
             anonymous_identity: None,
             domain_suffix_match: None,
             ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".into()),

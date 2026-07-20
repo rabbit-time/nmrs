@@ -1126,7 +1126,7 @@ mod tests {
 
     fn enterprise_credentials() -> WifiSecurity {
         WifiSecurity::WpaEap {
-            opts: EapOptions::new("user", "password"),
+            opts: EapOptions::new("user", Passphrase::new("password".to_string())),
         }
     }
 
@@ -1160,10 +1160,10 @@ mod tests {
     fn saved_profile_is_rebuilt_for_every_supplied_credential_kind() {
         let cases = [
             WifiSecurity::WpaPsk {
-                psk: "new password".into(),
+                psk: Passphrase::new("new password".to_string()),
             },
             WifiSecurity::WpaPsk {
-                psk: "        ".into(),
+                psk: Passphrase::new("        ".to_string()),
             },
             enterprise_credentials(),
             wpa3_enterprise_credentials(),
@@ -1192,7 +1192,7 @@ mod tests {
         ));
 
         let whitespace_psk = WifiSecurity::WpaPsk {
-            psk: "        ".into(),
+            psk: Passphrase::new("        ".to_string()),
         };
         validate_wifi_security(&whitespace_psk).expect("eight spaces is a valid-length PSK");
         assert_eq!(
@@ -1224,7 +1224,7 @@ mod tests {
         }));
         assert!(can_rebuild_after_saved_failure(&WifiSecurity::Open));
         assert!(can_rebuild_after_saved_failure(&WifiSecurity::WpaPsk {
-            psk: "password".into(),
+            psk: Passphrase::new("password".to_string()),
         }));
         assert!(can_rebuild_after_saved_failure(&enterprise_credentials()));
         assert!(can_rebuild_after_saved_failure(

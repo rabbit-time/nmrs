@@ -328,8 +328,16 @@ pub fn build_openvpn_connection(
     let data_dict = string_pairs_to_dict(vpn_data)?;
 
     let mut vpn_secrets: Vec<(String, String)> = Vec::new();
-    push_opt_display(&mut vpn_secrets, "password", config.password.clone().map(|p| p.reveal()));
-    push_opt_display(&mut vpn_secrets, "cert-pass", config.key_password.clone().map(|p| p.reveal()));
+    push_opt_display(
+        &mut vpn_secrets,
+        "password",
+        config.password.clone().map(|p| p.reveal()),
+    );
+    push_opt_display(
+        &mut vpn_secrets,
+        "cert-pass",
+        config.key_password.clone().map(|p| p.reveal()),
+    );
 
     let mut vpn: HashMap<&'static str, Value<'static>> = HashMap::new();
     vpn.insert(
@@ -384,9 +392,9 @@ pub fn build_openvpn_connection(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::models::{
+    use crate::{api::models::{
         OpenVpnCompression, OpenVpnConfig, OpenVpnProxy, VpnKind, WireGuardPeer,
-    };
+    }, models::Passphrase};
 
     fn create_test_credentials() -> VpnCredentials {
         let peer = WireGuardPeer::new(
@@ -1121,7 +1129,7 @@ mod tests {
         let config = create_openvpn_config()
             .with_auth_type(OpenVpnAuthType::Password)
             .with_username("user")
-            .with_password("secret");
+            .with_password(Passphrase::new("secret".to_string()));
         let opts = create_test_options();
         let settings = build_openvpn_connection(&config, &opts).unwrap();
         let vpn = settings.get("vpn").unwrap();

@@ -1299,7 +1299,7 @@ async fn wifi_wpa_saved_connection_lifecycle() {
             wifi.connect(
                 &ssid,
                 WifiSecurity::WpaPsk {
-                    psk: "nmrs-definitely-wrong-password".into(),
+                    psk: Passphrase::new("nmrs-definitely-wrong-password".to_string()),
                 },
             ),
         )
